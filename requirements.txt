@@ -1,0 +1,56 @@
+shapely
+scikit-image
+pyclipper
+lmdb; python_version >= "3.9"
+lmdb<1.5; python_version < "3.9"
+tqdm
+numpy
+rapidfuzz
+opencv-python
+opencv-contrib-python
+cython
+Pillow
+pyyaml
+requests
+albumentations
+# to be compatible with albumentations
+albucore
+packaging
+#/* The following dependencies are required for training and evaluation, but not for inference. */
+# cd C:\Users\PC\Downloads\PaddleOCR-main\PaddleOCR-main
+#python -m pip install -U pip
+#python -m pip install -r requirements.txt
+#------------------------------------------#
+#python -m pip install paddlepaddle
+
+# paddlepaddle-gpu; python_version >= "3.9" and platform_system != "Windows"
+# paddlepaddle; python_version >= "3.9" and platform_system == "Windows"        
+#-------------------------------------------#
+#-------------------------------------------#
+#cd C:\Users\PC\Downloads\PaddleOCR-main\PaddleOCR-main
+#python -m pip install -r requirements.txt
+#python -m pip install paddlepaddle
+#python tools/train.py -c configs/rec/PP-OCRv5/PP-OCRv5_server_rec.yml
+#/* If VS Code still shows missing imports after installing, select the correct interpreter:
+#Ctrl+Shift+P -> Python: Select Interpreter -> Choose the one where you installed the packages (e.g., Python 3.9 or Python 3.10)
+#*/  
+#python tools/train.py -c configs/rec/PP-OCRv4/PP-OCRv4_server_rec.yml
+#If you do not have a good NVIDIA GPU setup locally, also change this in the YAML:
+
+#use_gpu: false
+#distributed: false
+#And probably lower the batch size:
+
+#first_bs: &bs 8
+#batch_size_per_card: *bs
+#So the short answer is: run tools/train.py, using your config file configs/rec/PP-OCRv5/PP-OCRv5_server_rec.yml.
+
+
+#To get exactly the table in your screenshot during training, you would need custom logging code. Without changing code, the closest workflow is:
+
+#1. train model
+#2. run eval.py for accuracy summary
+# 3. run infer_rec.py on validation images
+# 4. compare predictions against your TSV labels manually or with a separate script
+# So PaddleOCR has the information internally, but it does not display it in that table format by default.
+# #
