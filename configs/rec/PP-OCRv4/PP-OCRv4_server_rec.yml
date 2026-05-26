@@ -1,0 +1,140 @@
+Global:
+  model_name: PP-OCRv4_server_rec # To use static model for inference.
+  debug: false
+  use_gpu: false # To use CPU for training and inference.
+  epoch_num: 200
+  log_smooth_window: 20
+  print_batch_step: 1 # Set to 1 for more frequent logging during training. Adjust based on your needs.was 10
+  save_model_dir: ./output/rec_ppocr_v4_hgnet
+  save_epoch_step: 1 # was 10 # Save a checkpoint every 10 epochs. Adjust based on your needs.
+  eval_batch_step: [0, 1] # was [0, 2000] # Evaluate at the beginning and after 500 batches. Adjust based on your needs.
+  cal_metric_during_train: true
+  pretrained_model:
+  checkpoints:
+  save_inference_dir:
+  use_visualdl: false
+  infer_img: doc/imgs_words/ch/word_1.jpg
+  character_dict_path: ppocr/utils/dict/amharic_dict.txt
+  max_text_length: &max_text_length 200
+  infer_mode: false
+  use_space_char: true
+  distributed: false # Set to false for CPU inference.
+  save_res_path: ./output/rec/predicts_ppocrv3.txt
+  d2s_train_image_shape: [3, 48, 320]
+
+Optimizer:
+  name: Adam
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    name: Cosine
+    learning_rate: 0.001
+    warmup_epoch: 5
+  regularizer:
+    name: L2
+    factor: 3.0e-05
+
+
+Architecture:
+  model_type: rec
+  algorithm: SVTR_HGNet
+  Transform:
+  Backbone:
+    name: PPHGNet_small
+  Head:
+    name: MultiHead
+    head_list:
+      - CTCHead:
+          Neck:
+            name: svtr
+            dims: 120
+            depth: 2
+            hidden_dims: 120
+            kernel_size: [1, 3]
+            use_guide: True
+          Head:
+            fc_decay: 0.00001
+      - NRTRHead:
+          nrtr_dim: 384
+          max_text_length: *max_text_length
+
+Loss:
+  name: MultiLoss
+  loss_config_list:
+    - CTCLoss:
+    - NRTRLoss:
+
+PostProcess:  
+  name: CTCLabelDecode
+
+Metric:
+  name: RecMetric
+  main_indicator: acc
+
+Train:
+  dataset:
+    name: MultiScaleDataSet
+    ds_width: false
+    data_dir: C:/Users/PC/Downloads/archive (1)/quick_train
+    ext_op_transform_idx: 1
+    label_file_list:
+    - C:/Users/PC/Downloads/archive (1)/quick_train - Sheet1.tsv
+    delimiter: "\t"
+    transforms:
+    - DecodeImage:
+        img_mode: BGR
+        channel_first: false
+    - RecConAug:
+        prob: 0.5
+        ext_data_num: 2
+        image_shape: [48, 320, 3]
+        max_text_length: *max_text_length
+    - RecAug:
+    - MultiLabelEncode:
+        gtc_encode: NRTRLabelEncode
+    - KeepKeys:
+        keep_keys:
+        - image
+        - label_ctc
+        - label_gtc
+        - length
+        - valid_ratio
+  sampler:
+    name: MultiScaleSampler
+    scales: [[320, 32], [320, 48], [320, 64]]
+    first_bs: &bs 8 #128
+    fix_bs: false
+    divided_factor: [8, 16] # w, h
+    is_training: True
+  loader:
+    shuffle: true
+    batch_size_per_card: *bs
+    drop_last: true
+    num_workers: 0 #8
+Eval:
+  dataset:
+    name: SimpleDataSet
+    data_dir: C:/Users/PC/Downloads/archive (1)/quick_val
+    label_file_list:
+    - C:/Users/PC/Downloads/archive (1)/quick_val - Sheet1.tsv
+    delimiter: "\t"
+    transforms:
+    - DecodeImage:
+        img_mode: BGR
+        channel_first: false
+    - MultiLabelEncode:
+        gtc_encode: NRTRLabelEncode
+    - RecResizeImg:
+        image_shape: [3, 48, 320]
+    - KeepKeys:
+        keep_keys:
+        - image
+        - label_ctc
+        - label_gtc
+        - length
+        - valid_ratio
+  loader:
+    shuffle: false
+    drop_last: false
+    batch_size_per_card: *bs #128
+    num_workers: 0 # 4

@@ -1,0 +1,138 @@
+Global:
+  model_name: PP-OCRv5_server_rec # To use static model for inference.
+  debug: false
+  use_gpu: false # Set to false for CPU inference.
+  epoch_num: 1 # Set to 1 for quick testing. Adjust based on your needs.was 75
+  log_smooth_window: 20
+  print_batch_step: 1 # Set to 1 for more frequent logging during training. Adjust based on your needs.was 10 
+  save_model_dir: ./output/PP-OCRv5_server_rec
+  save_epoch_step: 1
+  eval_batch_step: [0, 500] # to see savepoints # Evaluate at the beginning and after 500 batches. Adjust based on your needs.  was [0, 2000]
+  cal_metric_during_train: true
+  calc_epoch_interval: 1
+  pretrained_model: 
+  checkpoints:
+  save_inference_dir:
+  use_visualdl: false
+  infer_img: doc/imgs_words/ch/word_1.jpg
+  character_dict_path: ./ppocr/utils/dict/amharic_dict.txt
+  max_text_length: &max_text_length 200
+  infer_mode: false
+  use_space_char: true
+  distributed: false # Set to false for CPU inference.
+  save_res_path: ./output/rec/predicts_ppocrv5.txt
+  d2s_train_image_shape: [3, 48, 320]
+
+
+Optimizer:
+  name: Adam
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    name: Cosine
+    learning_rate: 0.0005
+    warmup_epoch: 1
+  regularizer:
+    name: L2
+    factor: 3.0e-05
+
+
+Architecture:
+  model_type: rec
+  algorithm: SVTR_HGNet
+  Transform:
+  Backbone:
+    name: PPHGNetV2_B4
+    text_rec: True
+  Head:
+    name: MultiHead
+    head_list:
+      - CTCHead:
+          Neck:
+            name: svtr
+            dims: 120
+            depth: 2
+            hidden_dims: 120
+            kernel_size: [1, 3]
+            use_guide: True
+          Head:
+            fc_decay: 0.00001
+      - NRTRHead:
+          nrtr_dim: 384
+          max_text_length: *max_text_length
+
+Loss:
+  name: MultiLoss
+  loss_config_list:
+    - CTCLoss:
+    - NRTRLoss:
+
+PostProcess:  
+  name: CTCLabelDecode
+
+Metric:
+  name: RecMetric
+  main_indicator: acc
+
+Train:
+  dataset:
+    name: MultiScaleDataSet
+    ds_width: false
+    data_dir: C:/Users/PC/Downloads/CAC_DA_Amh_OCR/train
+    ext_op_transform_idx: 1
+    delimiter: "\t"
+    label_file_list:
+    - C:/Users/PC/Downloads/CAC_DA_Amh_OCR/train_corrected - train_data.tsv
+    transforms:
+    - DecodeImage:
+        img_mode: BGR
+        channel_first: false
+    #- RecAug:
+    - MultiLabelEncode:
+        gtc_encode: NRTRLabelEncode
+    - KeepKeys:
+        keep_keys:
+        - image
+        - label_ctc
+        - label_gtc
+        - length
+        - valid_ratio
+  sampler:
+    name: MultiScaleSampler
+    scales: [[320, 32], [320, 48], [320, 64]]
+    first_bs: &bs 8 # Set to 8 for CPU inference. Adjust based on your CPU capabilities.was 128
+    fix_bs: false
+    divided_factor: [8, 16] # w, h
+    is_training: True
+  loader:
+    shuffle: true
+    batch_size_per_card: *bs
+    drop_last: true
+    num_workers: 0 # Set to 0 for CPU inference. Adjust based on your CPU capabilities.was 16
+Eval:
+  dataset:
+    name: SimpleDataSet
+    data_dir: C:/Users/PC/Downloads/CAC_DA_Amh_OCR/test
+    label_file_list:
+    - C:/Users/PC/Downloads/CAC_DA_Amh_OCR/test_corrected - test_data.tsv
+    delimiter: "\t"
+    transforms:
+    - DecodeImage:
+        img_mode: BGR
+        channel_first: false
+    - MultiLabelEncode:
+        gtc_encode: NRTRLabelEncode
+    - RecResizeImg:
+        image_shape: [3, 48, 320]
+    - KeepKeys:
+        keep_keys:
+        - image
+        - label_ctc
+        - label_gtc
+        - length
+        - valid_ratio
+  loader:
+    shuffle: false
+    drop_last: false
+    batch_size_per_card: *bs # Set to the same batch size as training for evaluation. Adjust based on your CPU capabilities.was 128
+    num_workers: 0 # Set to 0 for CPU inference. Adjust based on your CPU capabilities.was 4
