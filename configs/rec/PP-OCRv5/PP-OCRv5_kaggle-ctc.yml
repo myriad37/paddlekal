@@ -84,7 +84,7 @@ Train:
     - DecodeImage:
         img_mode: BGR
         channel_first: false
-    - RecAug:
+    #- RecAug:
     -CTCLabelEncode:
     #- MultiLabelEncode:
     #    gtc_encode: NRTRLabelEncode
