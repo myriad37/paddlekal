@@ -75,7 +75,6 @@ Metric:
 Train:
   dataset:
     name: SimpleDataSet
-    ds_width: false
     data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/CAC_DA_Amh_OCR/train
     ext_op_transform_idx: 1
     delimiter: "\t"
