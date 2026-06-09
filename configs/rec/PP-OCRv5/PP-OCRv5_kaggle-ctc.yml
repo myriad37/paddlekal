@@ -74,7 +74,8 @@ Metric:
 
 Train:
   dataset:
-    name: SimpleDataSet
+    name: MultiScaleDataSet        # Reverted from SimpleDataSet
+    ds_width: true
     data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/CAC_DA_Amh_OCR/train
     ext_op_transform_idx: 1
     delimiter: "\t"
@@ -95,18 +96,18 @@ Train:
         - image
         - label
         - length
- # sampler:
-  #  name: MultiScaleSampler
-   # scales: [[1280, 32], [1280, 48], [1280, 64]]
-    #first_bs: &bs 8
-    #fix_bs: false
-    #divided_factor: [8, 16]
-    #is_training: True
+  sampler:
+    name: MultiScaleSampler
+    scales: [[1280, 32], [1280, 48], [1280, 64]]
+    first_bs: 64
+    fix_bs: false
+    divided_factor: [8, 16]
+    is_training: True
   loader:
     shuffle: true
-    batch_size_per_card: 32
+    batch_size_per_card: 1
     drop_last: true
-    num_workers: 2
+    num_workers: 0
 
 Eval:
   dataset:
