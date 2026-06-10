@@ -1,7 +1,7 @@
 Global:
   model_name: PP-OCRv5_mobile_rec_ctc_cpu
   debug: false
-  use_gpu: false
+  use_gpu: true
   epoch_num: 75
   log_smooth_window: 20
   print_batch_step: 10
@@ -15,12 +15,12 @@ Global:
   use_visualdl: false
   infer_img: doc/imgs_words/ch/word_1.jpg
   character_dict_path: ./ppocr/utils/dict/amharic_dict.txt
-  max_text_length: &max_text_length 150
+  max_text_length: &max_text_length 140
   infer_mode: false
   use_space_char: true
-  distributed: false
+  distributed: true
   save_res_path: ./output/rec/predicts_ppocrv5_ctc_cpu.txt
-  d2s_train_image_shape: [3, 48, 1280]
+  d2s_train_image_shape: [3, 48, 320]
 
 
 Optimizer:
@@ -30,7 +30,7 @@ Optimizer:
   lr:
     name: Cosine
     learning_rate: 0.0005
-    warmup_epoch: 5
+    warmup_epoch: 0
   regularizer:
     name: L2
     factor: 3.0e-05
@@ -73,11 +73,11 @@ Train:
     - DecodeImage:
         img_mode: BGR
         channel_first: false
-    - RecConAug:
-        prob: 0.5
-        ext_data_num: 2
-        image_shape: [48, 1280, 3]
-        max_text_length: *max_text_length
+    #- RecConAug:
+     #   prob: 0.5
+     #   ext_data_num: 2
+     #   image_shape: [48, 1280, 3]
+     #   max_text_length: *max_text_length
     - RecAug:
     - CTCLabelEncode:
     - KeepKeys:
@@ -87,7 +87,7 @@ Train:
         - length
   sampler:
     name: MultiScaleSampler
-    scales: [[1280, 32], [1280, 48], [1280, 64]]
+    scales: [[320, 32], [320, 48], [320, 64]]
     first_bs: &bs 8
     fix_bs: false
     divided_factor: [8, 16]
@@ -111,7 +111,7 @@ Eval:
         channel_first: false
     - CTCLabelEncode:
     - RecResizeImg:
-        image_shape: [3, 48, 1280]
+        image_shape: [3, 48, 320]
     - KeepKeys:
         keep_keys:
         - image
