@@ -64,11 +64,11 @@ Train:
   dataset:
     name: MultiScaleDataSet
     ds_width: false
-    data_dir: /kaggle/input/cac-da-amh-ocr/train
+    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/CAC_DA_Amh_OCR/train
     ext_op_transform_idx: 1
     delimiter: "\t"
     label_file_list:
-    - /kaggle/input/cac-da-amh-ocr/train_corrected - train_data.tsv
+    - /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/train_corrected - train_data.tsv
     transforms:
     - DecodeImage:
         img_mode: BGR
@@ -101,9 +101,9 @@ Train:
 Eval:
   dataset:
     name: SimpleDataSet
-    data_dir: /kaggle/input/cac-da-amh-ocr/val
+    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/CAC_DA_Amh_OCR/val
     label_file_list:
-    - /kaggle/input/cac-da-amh-ocr/val_corrected - val_data.tsv
+    - /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/val_datanew - val_data.tsv
     delimiter: "\t"
     transforms:
     - DecodeImage:
