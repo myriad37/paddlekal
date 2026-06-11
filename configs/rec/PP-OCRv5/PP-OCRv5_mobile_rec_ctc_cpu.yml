@@ -15,12 +15,12 @@ Global:
   use_visualdl: false
   infer_img: doc/imgs_words/ch/word_1.jpg
   character_dict_path: ./ppocr/utils/dict/amharic_dict.txt
-  max_text_length: &max_text_length 140
+  max_text_length: &max_text_length 150
   infer_mode: false
   use_space_char: true
   distributed: true
   save_res_path: ./output/rec/predicts_ppocrv5_ctc_cpu.txt
-  d2s_train_image_shape: [3, 48, 320]
+  d2s_train_image_shape: [3, 48, 640]
 
 
 Optimizer:
@@ -87,7 +87,7 @@ Train:
         - length
   sampler:
     name: MultiScaleSampler
-    scales: [[320, 32], [320, 48], [320, 64]]
+    scales: [[640, 32], [640, 48], [640, 64]]
     first_bs: &bs 8
     fix_bs: false
     divided_factor: [8, 16]
@@ -111,7 +111,7 @@ Eval:
         channel_first: false
     - CTCLabelEncode:
     - RecResizeImg:
-        image_shape: [3, 48, 320]
+        image_shape: [3, 48, 640]
     - KeepKeys:
         keep_keys:
         - image
