@@ -103,7 +103,7 @@ Eval:
     name: SimpleDataSet
     data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/CAC_DA_Amh_OCR/val
     label_file_list:
-    -/kaggle/input/datasets/kalafattezazu/dataset/val .tsv
+    - /kaggle/input/datasets/kalafattezazu/dataset/val .tsv
     delimiter: "\t"
     transforms:
     - DecodeImage:
