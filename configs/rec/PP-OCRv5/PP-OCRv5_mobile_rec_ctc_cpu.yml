@@ -7,7 +7,7 @@ Global:
   print_batch_step: 10
   save_model_dir: /kaggle/working/output/PP-OCRv5_kaggle_rec
   save_epoch_step: 1
-  eval_batch_step: [0, 1000]
+  eval_batch_step: [0, 2000]
   cal_metric_during_train: true
   pretrained_model:
   checkpoints:
@@ -64,7 +64,7 @@ Train:
   dataset:
     name: MultiScaleDataSet
     ds_width: false
-    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/CAC_DA_Amh_OCR/train 
+    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr-updated/train
     ext_op_transform_idx: 1
     delimiter: "\t"
     label_file_list:
@@ -88,7 +88,7 @@ Train:
   sampler:
     name: MultiScaleSampler
     scales: [[640, 32], [640, 48], [640, 64]]
-    first_bs: &bs 8
+    first_bs: &bs 32
     fix_bs: false
     divided_factor: [8, 16]
     is_training: True
@@ -96,12 +96,12 @@ Train:
     shuffle: true
     batch_size_per_card: *bs
     drop_last: true
-    num_workers: 2
+    num_workers: 4
 
 Eval:
   dataset:
     name: SimpleDataSet
-    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr/CAC_DA_Amh_OCR/val
+    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr-updated/val
     label_file_list:
     - /kaggle/input/datasets/kalafattezazu/dataset/val .tsv
     delimiter: "\t"
@@ -121,4 +121,4 @@ Eval:
     shuffle: false
     drop_last: false
     batch_size_per_card: *bs
-    num_workers: 2
+    num_workers: 4
