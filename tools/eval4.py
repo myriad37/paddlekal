@@ -5,8 +5,8 @@ from __future__ import print_function
 import os
 import sys
 import tempfile
-import csv
 
+# Setup directory paths for PaddleOCR execution context
 __dir__ = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, __dir__)
 sys.path.insert(0, os.path.abspath(os.path.join(__dir__, "..")))
@@ -20,101 +20,17 @@ from ppocr.utils.save_load import load_model
 import tools.program as program
 
 
-class PredExtractorMetric:
-    """
-    A transparent wrapper around PaddleOCR's metric class to intercept
-    and store per-image predictions for CSV generation. Handles scalar
-    and sequence/tuple confidence scores safely.
-    """
-
-    def __init__(self, base_metric):
-        self.base_metric = base_metric
-        self.csv_rows = []
-
-    def __call__(self, preds, batch, **kwargs):
-        # Extract batch predictions depending on architecture (e.g., Distillation vs Standard)
-        if isinstance(preds, dict):
-            eval_key = next((k for k in preds.keys() if 'Student' in k), list(preds.keys())[0])
-            batch_preds = preds[eval_key]
-        else:
-            batch_preds = preds
-
-        # Normalize prediction formats to (text, confidence) safely
-        for i, pred_item in enumerate(batch_preds):
-            text = ""
-            conf = 0.0
-
-            if isinstance(pred_item, (tuple, list)) and len(pred_item) >= 2:
-                text = pred_item[0]
-                raw_conf = pred_item[1]
-
-                # Handle cases where confidence is a tuple/list (e.g., token-level scores)
-                if isinstance(raw_conf, (tuple, list)):
-                    if len(raw_conf) > 0:
-                        try:
-                            # Calculate average token confidence across the sequence
-                            conf = sum(float(x) for x in raw_conf) / len(raw_conf)
-                        except (ValueError, TypeError):
-                            try:
-                                # Fallback to the first element if it's a nested structure
-                                conf = float(raw_conf[0])
-                            except (ValueError, TypeError, IndexError):
-                                conf = 0.0
-                    else:
-                        conf = 0.0
-                else:
-                    try:
-                        conf = float(raw_conf)
-                    except (ValueError, TypeError):
-                        conf = 0.0
-
-            elif isinstance(pred_item, dict) and 'text' in pred_item:
-                text = pred_item['text']
-                raw_conf = pred_item.get('score', 0.0)
-                if isinstance(raw_conf, (tuple, list)) and len(raw_conf) > 0:
-                    try:
-                        conf = sum(float(x) for x in raw_conf) / len(raw_conf)
-                    except:
-                        conf = 0.0
-                else:
-                    try:
-                        conf = float(raw_conf)
-                    except:
-                        conf = 0.0
-            else:
-                text = str(pred_item)
-                conf = 0.0
-
-            self.csv_rows.append((str(text), float(conf)))
-
-        # Forward the data to the original metric calculator
-        self.base_metric(preds, batch, **kwargs)
-
-    def reset(self):
-        self.csv_rows = []
-        if hasattr(self.base_metric, 'reset'):
-            return self.base_metric.reset()
-
-    def get_metric(self):
-        if hasattr(self.base_metric, 'get_metric'):
-            return self.base_metric.get_metric()
-        return {}
-
-    def __getattr__(self, name):
-        return getattr(self.base_metric, name)
-
-
 def main():
     global_config = config["Global"]
     set_signal_handlers()
 
-    # 1. Build post process
+    # 1. Build Post Process
     post_process_class = build_post_process(config["PostProcess"], global_config)
 
-    # 2. Build model
+    # 2. Build Model Configuration
     if hasattr(post_process_class, "character"):
         char_num = len(getattr(post_process_class, "character"))
-        if config["Architecture"]["algorithm"] in ["Distillation"]:  # distillation model
+        if config["Architecture"]["algorithm"] in ["Distillation"]:
             for key in config["Architecture"]["Models"]:
                 if config["Architecture"]["Models"][key]["Head"]["name"] == "MultiHead":
                     out_channels_list = {}
@@ -128,7 +44,7 @@ def main():
                     config["Architecture"]["Models"][key]["Head"]["out_channels_list"] = out_channels_list
                 else:
                     config["Architecture"]["Models"][key]["Head"]["out_channels"] = char_num
-        elif config["Architecture"]["Head"]["name"] == "MultiHead":  # for multi head
+        elif config["Architecture"]["Head"]["name"] == "MultiHead":
             out_channels_list = {}
             if config["PostProcess"]["name"] == "SARLabelDecode":
                 char_num = char_num - 2
@@ -138,10 +54,11 @@ def main():
             out_channels_list["SARLabelDecode"] = char_num + 2
             out_channels_list["NRTRLabelDecode"] = char_num + 3
             config["Architecture"]["Head"]["out_channels_list"] = out_channels_list
-        else:  # base rec model
+        else:
             config["Architecture"]["Head"]["out_channels"] = char_num
 
     model = build_model(config["Architecture"])
+
     extra_input_models = [
         "SRN", "NRTR", "SAR", "SEED", "SVTR", "SVTR_LCNet",
         "VisionLAN", "RobustScanner", "SVTR_HGNet",
@@ -149,7 +66,7 @@ def main():
     extra_input = False
     if config["Architecture"]["algorithm"] == "Distillation":
         for key in config["Architecture"]["Models"]:
-            extra_input = (extra_input or config["Architecture"]["Models"][key]["algorithm"] in extra_input_models)
+            extra_input = extra_input or config["Architecture"]["Models"][key]["algorithm"] in extra_input_models
     else:
         extra_input = config["Architecture"]["algorithm"] in extra_input_models
 
@@ -173,11 +90,10 @@ def main():
     else:
         model_type = None
 
-    # 3. Build metric & Wrap it for Prediction Extraction
-    base_eval_class = build_metric(config["Metric"])
-    eval_class = PredExtractorMetric(base_eval_class)
+    # 3. Build Metric Evaluator
+    eval_class = build_metric(config["Metric"])
 
-    # 4. AMP
+    # 4. AMP Setup
     use_amp = config["Global"].get("use_amp", False)
     amp_level = config["Global"].get("amp_level", "O2")
     amp_custom_black_list = config["Global"].get("amp_custom_black_list", [])
@@ -195,6 +111,7 @@ def main():
     else:
         scaler = None
 
+    # 5. Load Model Weights Checkpoint
     best_model_dict = load_model(config, model, model_type=config["Architecture"]["model_type"])
     if len(best_model_dict):
         logger.info("metric in ckpt ***************")
@@ -204,12 +121,14 @@ def main():
     # =========================================================================
     # IN-MEMORY DATASET SPLITTING & SEQUENTIAL EVALUATION
     # =========================================================================
+
+    # Read the master label file path from the YAML configuration
     master_label_file = config["Eval"]["dataset"]["label_file_list"][0]
 
+    # Define prefixes for subset classification based on filename strings
     categories = {
-        "Synthetic": "synth",
+        "Synthetic": "synth_",
         "Handwritten (HDD)": "hdd_",
-        "Handwritten": "handwritten_",
         "Typed": "typed_"
     }
 
@@ -236,63 +155,92 @@ def main():
         logger.error(f"Failed to read master label file: {e}")
         return
 
-    # Setup CSV Writer
-    csv_file_path = os.path.join(global_config.get("save_model_dir", "./"), "test_predictions.csv")
-    os.makedirs(os.path.dirname(csv_file_path), exist_ok=True)
-
     final_results = {}
 
-    with open(csv_file_path, "w", encoding="utf-8", newline="") as csvfile:
-        csv_writer = csv.writer(csvfile)
-        csv_writer.writerow(["image_name", "ground_truth", "prediction", "confidence", "correct", "subset"])
+    # =================================================================
+    # Proxy Wrapper to print Prediction, Confidence, and Ground Truth
+    # =================================================================
+    class EvalLoggerWrapper:
+        def __init__(self, base_eval_class, logger):
+            self.base_eval_class = base_eval_class
+            self.logger = logger
 
-        for cat, lines in split_data.items():
-            if not lines:
-                continue
-
-            logger.info(f"\n{'=' * 60}\nEvaluating Subset: {cat} ({len(lines)} items)\n{'=' * 60}")
-
-            fd, temp_tsv_path = tempfile.mkstemp(suffix=".tsv", text=True)
-            with os.fdopen(fd, 'w', encoding='utf-8') as temp_f:
-                temp_f.writelines(lines)
-
+        def __call__(self, preds, batch, **kwargs):
+            # 'preds' holds the decoded predictions: [(pred_str, conf), ...]
+            # 'batch[1]' contains the actual ground truth labels
             try:
-                config["Eval"]["dataset"]["label_file_list"] = [temp_tsv_path]
-                config["Eval"]["loader"]["shuffle"] = False
-                config["Eval"]["loader"]["drop_last"] = False
-                subset_dataloader = build_dataloader(config, "Eval", device, logger)
+                gt_texts = batch[1]
+                for i in range(min(len(preds), len(gt_texts))):
+                    # 1. Unpack Prediction and Confidence
+                    if isinstance(preds[i], (tuple, list)) and len(preds[i]) >= 2:
+                        pred_text, conf = preds[i][0], preds[i][1]
+                    else:
+                        pred_text, conf = preds[i], 0.0
+                        
+                    # 2. Unpack Ground Truth
+                    gt_text = gt_texts[i]
+                    if hasattr(gt_text, 'numpy'):
+                        gt_text = gt_text.numpy()
+                    
+                    # 3. Log the visual comparison to the console
+                    self.logger.info(f"[*] Predict: '{pred_text}' | Conf: {conf:.4f} | Correct (GT): '{gt_text}'")
+            except Exception:
+                pass # Silently continue if a batch structure differs
+            
+            # 4. Pass the data back to the original metric evaluator
+            return self.base_eval_class(preds, batch, **kwargs)
 
-                # Reset the wrapper row container before each split runs
-                eval_class.reset()
+        def get_metric(self):
+            return self.base_eval_class.get_metric()
 
-                # Execute evaluation
-                metric = program.eval(
-                    model, subset_dataloader, post_process_class, eval_class,
-                    model_type, extra_input, scaler, amp_level, amp_custom_black_list,
-                )
+        def reset(self):
+            self.base_eval_class.reset()
 
-                logger.info(f"--- metric eval for {cat} ---")
-                for k, v in metric.items():
-                    logger.info("{}:{}".format(k, v))
+    # Instantiate the wrapper once
+    logging_eval_class = EvalLoggerWrapper(eval_class, logger)
 
-                final_results[cat] = metric
+    # Sequentially build evaluation dataloaders for each sub-dataset split
+    for cat, lines in split_data.items():
+        if not lines:
+            continue
 
-                # Write Predictions to CSV
-                for line, (pred_text, conf) in zip(lines, eval_class.csv_rows):
-                    parts = line.strip().split('\t')
-                    image_name = parts[0]
-                    gt_text = parts[1] if len(parts) > 1 else ""
+        logger.info(f"\n{'=' * 60}\nEvaluating Subset: {cat} ({len(lines)} items)\n{'=' * 60}")
 
-                    # Compute correctness (Exact match, space-stripped)
-                    correct = (str(gt_text).strip() == str(pred_text).strip())
+        # Construct a temporary text file to serve as the subset label list
+        fd, temp_tsv_path = tempfile.mkstemp(suffix=".tsv", text=True)
+        with os.fdopen(fd, 'w', encoding='utf-8') as temp_f:
+            temp_f.writelines(lines)
 
-                    csv_writer.writerow([image_name, gt_text, pred_text, f"{conf:.4f}", correct, cat])
+        try:
+            # Overwrite the active configuration parameter to point to the temporary file
+            config["Eval"]["dataset"]["label_file_list"] = [temp_tsv_path]
 
-            finally:
-                if os.path.exists(temp_tsv_path):
-                    os.remove(temp_tsv_path)
+            # Rebuild the dataloader exclusively targeting the subset items
+            subset_dataloader = build_dataloader(config, "Eval", device, logger)
 
-    logger.info(f"Prediction CSV successfully saved to: {csv_file_path}")
+            # Calculate raw metrics using our new logging wrapper
+            metric = program.eval(
+                model,
+                subset_dataloader,
+                post_process_class,
+                logging_eval_class,
+                model_type,
+                extra_input,
+                scaler,
+                amp_level,
+                amp_custom_black_list,
+            )
+
+            logger.info(f"--- metric eval for {cat} ---")
+            for k, v in metric.items():
+                logger.info("{}:{}".format(k, v))
+
+            final_results[cat] = metric
+
+        finally:
+            # Clean up the dynamic temporary file from disk immediately
+            if os.path.exists(temp_tsv_path):
+                os.remove(temp_tsv_path)
 
     # =========================================================================
     # GENERATE AND WRITE PERFORMANCE SUMMARY FILE
@@ -305,14 +253,17 @@ def main():
         summary_lines.append(f"{cat.ljust(20)} | Accuracy (acc): {acc:.4f} | Char Accuracy (norm_ED): {norm_ed:.4f}\n")
     summary_lines.append("=" * 60 + "\n")
 
+    # Output matrix verification to logs
     for line in summary_lines:
         logger.info(line.strip())
 
-    output_summary_path = os.path.join(global_config.get("save_model_dir", "./"), "subset_evaluation_summary.txt")
+    # Build destination path inside the designated model tracking directory
+    output_summary_path = os.path.join(global_config["save_model_dir"], "subset_evaluation_summary.txt")
     try:
+        os.makedirs(os.path.dirname(output_summary_path), exist_ok=True)
         with open(output_summary_path, "w", encoding="utf-8") as sf:
             sf.writelines(summary_lines)
-        logger.info(f"Summary file saved to: {output_summary_path}")
+        logger.info(f"Successfully saved permanent evaluation file to: {output_summary_path}")
     except Exception as e:
         logger.error(f"Failed to generate output metrics file: {e}")
 
