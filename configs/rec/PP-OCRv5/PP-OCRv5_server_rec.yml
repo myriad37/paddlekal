@@ -1,13 +1,13 @@
 Global:
   model_name: PP-OCRv5_server_rec # To use static model for inference.
   debug: false
-  use_gpu: false # Set to false for CPU inference.
-  epoch_num: 1 # Set to 1 for quick testing. Adjust based on your needs.was 75
+  use_gpu: true # Set to false for CPU inference.
+  epoch_num: 150 # Set to 1 for quick testing. Adjust based on your needs.was 75
   log_smooth_window: 20
-  print_batch_step: 1 # Set to 1 for more frequent logging during training. Adjust based on your needs.was 10 
+  print_batch_step: 100 # Set to 1 for more frequent logging during training. Adjust based on your needs.was 10 
   save_model_dir: ./output/PP-OCRv5_server_rec
   save_epoch_step: 1
-  eval_batch_step: [0, 500] # to see savepoints # Evaluate at the beginning and after 500 batches. Adjust based on your needs.  was [0, 2000]
+  eval_batch_step: [0, 2000] # to see savepoints # Evaluate at the beginning and after 500 batches. Adjust based on your needs.  was [0, 2000]
   cal_metric_during_train: true
   calc_epoch_interval: 1
   pretrained_model: 
@@ -21,7 +21,7 @@ Global:
   use_space_char: true
   distributed: true # Set to false for CPU inference.
   save_res_path: ./output/rec/predicts_ppocrv5.txt
-  d2s_train_image_shape: [3, 48, 640]
+  d2s_train_image_shape: [3, 64, 2000]
 
 
 Optimizer:
@@ -87,7 +87,7 @@ Train:
     - DecodeImage:
         img_mode: BGR
         channel_first: false
-    #- RecAug:
+    - RecAug:
     - MultiLabelEncode:
         gtc_encode: NRTRLabelEncode
     - KeepKeys:
@@ -99,7 +99,7 @@ Train:
         - valid_ratio
   sampler:
     name: MultiScaleSampler
-    scales: [[640, 32], [640, 48], [640, 64]]
+    scales: [[1200, 48], [1600, 64], [2000, 64], [2000, 96]]
     first_bs: &bs 32 # Set to 8 for CPU inference. Adjust based on your CPU capabilities.was 128
     fix_bs: false
     divided_factor: [8, 16] # w, h
@@ -123,7 +123,7 @@ Eval:
     - MultiLabelEncode:
         gtc_encode: NRTRLabelEncode
     - RecResizeImg:
-        image_shape: [3, 48, 640]
+        image_shape: [3, 64, 2000]
     - KeepKeys:
         keep_keys:
         - image
