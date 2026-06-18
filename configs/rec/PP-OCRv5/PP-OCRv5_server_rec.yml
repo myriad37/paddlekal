@@ -16,12 +16,12 @@ Global:
   use_visualdl: false
   infer_img: doc/imgs_words/ch/word_1.jpg
   character_dict_path: ./ppocr/utils/dict/amharic_dict.txt
-  max_text_length: &max_text_length 200
+  max_text_length: &max_text_length 150
   infer_mode: false
   use_space_char: true
-  distributed: false # Set to false for CPU inference.
+  distributed: true # Set to false for CPU inference.
   save_res_path: ./output/rec/predicts_ppocrv5.txt
-  d2s_train_image_shape: [3, 48, 320]
+  d2s_train_image_shape: [3, 48, 640]
 
 
 Optimizer:
@@ -31,7 +31,7 @@ Optimizer:
   lr:
     name: Cosine
     learning_rate: 0.0005
-    warmup_epoch: 1
+    warmup_epoch: 0
   regularizer:
     name: L2
     factor: 3.0e-05
@@ -78,11 +78,11 @@ Train:
   dataset:
     name: MultiScaleDataSet
     ds_width: false
-    data_dir: C:/Users/PC/Downloads/CAC_DA_Amh_OCR/train
+    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr-updated/train
     ext_op_transform_idx: 1
     delimiter: "\t"
     label_file_list:
-    - C:/Users/PC/Downloads/CAC_DA_Amh_OCR/train_corrected - train_data.tsv
+    - /kaggle/input/datasets/kalafattezazu/dataset/train.tsv
     transforms:
     - DecodeImage:
         img_mode: BGR
@@ -99,8 +99,8 @@ Train:
         - valid_ratio
   sampler:
     name: MultiScaleSampler
-    scales: [[320, 32], [320, 48], [320, 64]]
-    first_bs: &bs 8 # Set to 8 for CPU inference. Adjust based on your CPU capabilities.was 128
+    scales: [[640, 32], [640, 48], [640, 64]]
+    first_bs: &bs 32 # Set to 8 for CPU inference. Adjust based on your CPU capabilities.was 128
     fix_bs: false
     divided_factor: [8, 16] # w, h
     is_training: True
@@ -108,13 +108,13 @@ Train:
     shuffle: true
     batch_size_per_card: *bs
     drop_last: true
-    num_workers: 0 # Set to 0 for CPU inference. Adjust based on your CPU capabilities.was 16
+    num_workers: 4 # Set to 0 for CPU inference. Adjust based on your CPU capabilities.was 16
 Eval:
   dataset:
     name: SimpleDataSet
-    data_dir: C:/Users/PC/Downloads/CAC_DA_Amh_OCR/test
+    data_dir: /kaggle/input/datasets/kalafattezazu/cac-da-amh-ocr-updated/val
     label_file_list:
-    - C:/Users/PC/Downloads/CAC_DA_Amh_OCR/test_corrected - test_data.tsv
+    - /kaggle/input/datasets/kalafattezazu/dataset/val .tsv
     delimiter: "\t"
     transforms:
     - DecodeImage:
@@ -123,7 +123,7 @@ Eval:
     - MultiLabelEncode:
         gtc_encode: NRTRLabelEncode
     - RecResizeImg:
-        image_shape: [3, 48, 320]
+        image_shape: [3, 48, 640]
     - KeepKeys:
         keep_keys:
         - image
@@ -135,4 +135,4 @@ Eval:
     shuffle: false
     drop_last: false
     batch_size_per_card: *bs # Set to the same batch size as training for evaluation. Adjust based on your CPU capabilities.was 128
-    num_workers: 0 # Set to 0 for CPU inference. Adjust based on your CPU capabilities.was 4
+    num_workers: 4 # Set to 0 for CPU inference. Adjust based on your CPU capabilities.was 4
