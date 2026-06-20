@@ -20,7 +20,7 @@ Global:
   use_space_char: true
   distributed: true
   save_res_path: ./output/rec/predicts_ppocrv5_ctc_cpu.txt
-  d2s_train_image_shape: [3, 48, 640]
+  d2s_train_image_shape: [3, 64, 2048]
 
 
 Optimizer:
@@ -87,7 +87,7 @@ Train:
         - length
   sampler:
     name: MultiScaleSampler
-    scales: [[640, 32], [640, 48], [640, 64]]
+    scales: [[2048, 48], [2048, 64], [2048, 80]]
     first_bs: &bs 32
     fix_bs: false
     divided_factor: [8, 16]
@@ -111,7 +111,7 @@ Eval:
         channel_first: false
     - CTCLabelEncode:
     - RecResizeImg:
-        image_shape: [3, 48, 640]
+        image_shape: [3, 64, 2048]
     - KeepKeys:
         keep_keys:
         - image
