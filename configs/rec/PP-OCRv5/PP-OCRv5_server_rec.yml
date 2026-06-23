@@ -21,7 +21,7 @@ Global:
   use_space_char: true
   distributed: true # Set to false for CPU inference.
   save_res_path: ./output/rec/predicts_ppocrv5.txt
-  d2s_train_image_shape: [3, 64, 2000]
+  d2s_train_image_shape: [3, 64, 2048]
 
 
 Optimizer:
@@ -99,8 +99,8 @@ Train:
         - valid_ratio
   sampler:
     name: MultiScaleSampler
-    scales: [[1200, 48], [1600, 64], [2000, 64], [2000, 96]]
-    first_bs: &bs 32 # Set to 8 for CPU inference. Adjust based on your CPU capabilities.was 128
+    scales: [[2048, 48], [2048, 64], [2048, 80]]
+    first_bs: &bs 16 # Set to 8 for CPU inference. Adjust based on your CPU capabilities.was 128
     fix_bs: false
     divided_factor: [8, 16] # w, h
     is_training: True
@@ -123,7 +123,7 @@ Eval:
     - MultiLabelEncode:
         gtc_encode: NRTRLabelEncode
     - RecResizeImg:
-        image_shape: [3, 64, 2000]
+        image_shape: [3, 64, 2048]
     - KeepKeys:
         keep_keys:
         - image
