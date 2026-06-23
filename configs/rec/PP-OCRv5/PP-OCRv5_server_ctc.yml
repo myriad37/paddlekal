@@ -2,12 +2,12 @@ Global:
   model_name: PP-OCRv5_server_rec_ctc_sentence_optimized
   debug: false
   use_gpu: true
-  epoch_num: 80
+  epoch_num: 150
   log_smooth_window: 20
-  print_batch_step: 10
+  print_batch_step: 100
   save_model_dir: /kaggle/working/output/PP-OCRv5_server_rec_ctc_sentence
-  save_epoch_step: 5
-  eval_batch_step: [0, 1500]
+  save_epoch_step: 1
+  eval_batch_step: [0, 5000]
   cal_metric_during_train: true
   calc_epoch_interval: 1
   pretrained_model:
@@ -21,7 +21,7 @@ Global:
   use_space_char: true
   distributed: false
   save_res_path: /kaggle/working//output/rec/predicts_server_ctc_sentence.txt
-  d2s_train_image_shape: [3, 48, 1280]
+  d2s_train_image_shape: [3, 64, 2048]
 
 
 Optimizer:
@@ -78,11 +78,11 @@ Train:
       - DecodeImage:
           img_mode: BGR
           channel_first: false
-      - RecConAug:
-          prob: 0.7
-          ext_data_num: 3
-          image_shape: [48, 1280, 3]
-          max_text_length: *max_text_length
+     # - RecConAug:
+     #     prob: 0.7
+     #     ext_data_num: 3
+     #     image_shape: [48, 1280, 3]
+     #     max_text_length: *max_text_length
       - RecAug:
       - CTCLabelEncode:
       - KeepKeys:
@@ -92,8 +92,8 @@ Train:
             - length
   sampler:
     name: MultiScaleSampler
-    scales: [[1280, 32], [1280, 48], [1280, 64], [1280, 80]]
-    first_bs: &bs 2
+    scales: [[2048, 48], [2048, 64], [2048, 80]]
+    first_bs: &bs 16
     fix_bs: false
     divided_factor: [8, 16]
     is_training: True
@@ -101,14 +101,14 @@ Train:
     shuffle: true
     batch_size_per_card: *bs
     drop_last: true
-    num_workers: 0
+    num_workers: 4
 
 Eval:
   dataset:
     name: SimpleDataSet
     data_dir: /kaggle/input/datasets/teddylegessemunea/cac-da-amh-ocr/val
     label_file_list:
-      - /kaggle/input/datasets/kalafattezazu/dataset/val .tsv
+      - /kaggle/input/datasets/kalafattezazu/dataset/val.tsv
     delimiter: "\t"
     transforms:
       - DecodeImage:
@@ -117,7 +117,7 @@ Eval:
       - CTCLabelEncode:
       - RecResizeImg:
           eval_mode: True
-          image_shape: [3, 48, 1280]
+          image_shape: [3, 64, 2048]
       - KeepKeys:
           keep_keys:
             - image
@@ -127,4 +127,4 @@ Eval:
     shuffle: false
     drop_last: false
     batch_size_per_card: 1
-    num_workers: 0
+    num_workers: 4
