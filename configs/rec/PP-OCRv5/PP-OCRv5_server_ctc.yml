@@ -90,7 +90,7 @@ Train:
       - DecodeImage:
           img_mode: BGR
           channel_first: false
-     - RecConAug:
+      - RecConAug:
           prob: 0.7
           ext_data_num: 3
           image_shape: [64, 2048, 3]
