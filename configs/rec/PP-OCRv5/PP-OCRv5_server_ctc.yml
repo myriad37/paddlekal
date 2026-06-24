@@ -101,9 +101,10 @@ Train:
       - KeepKeys:
           keep_keys:
             - image
-            - label
+            - label_ctc     # Changed from label
+            - label_sar     # Changed from label_sar
             - length
-            - label_sar
+            - valid_ratio   # Added for sequence length verification
   sampler:
     name: MultiScaleSampler
     scales: [[2048, 48], [2048, 64], [2048, 80]]
@@ -136,9 +137,10 @@ Eval:
       - KeepKeys:
           keep_keys:
             - image
-            - label
+            - label_ctc     # Changed from label
+            - label_sar     # Changed from label_sar
             - length
-            - label_sar
+            - valid_ratio   # Added for sequence length verification
   loader:
     shuffle: false
     drop_last: false
