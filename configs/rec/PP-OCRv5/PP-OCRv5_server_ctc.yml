@@ -20,7 +20,7 @@ Global:
   infer_mode: false
   use_space_char: true
   distributed: false
-  save_res_path: /kaggle/working//output/rec/predicts_server_ctc_sentence.txt
+  save_res_path: /kaggle/working/output/rec/predicts_server_ctc_sentence.txt
   d2s_train_image_shape: [3, 64, 2048]
 
 
@@ -45,19 +45,31 @@ Architecture:
     name: PPHGNetV2_B4
     text_rec: True
   Neck:
-    name: svtr
-    dims: 160
-    depth: 4
-    hidden_dims: 160
-    kernel_size: [1, 3]
-    use_guide: True
+    #name: SequenceEncoder
+    #encoder_type: svtr  #reshape
+    #dims: 160  # new
   Head:
-    name: CTCHead
-    fc_decay: 0.0001
-
+    name: MultiHead
+    head_list:
+      - CTCHead:
+          Neck:
+            name: svtr
+            dims: 160
+            depth: 4
+            hidden_dims: 160
+            kernel_size: [1, 3]
+            use_guide: True
+          Head:
+            fc_decay: 0.0001
+      - SARHead:
+          enc_dim: 512
+          max_text_length: *max_text_length # Ensure this matches your global max_text_length
 Loss:
-  name: CTCLoss
-
+  name: MultiLoss
+  loss_config_list:
+    - CTCLoss:
+    - SARLoss:
+    
 PostProcess:
   name: CTCLabelDecode
 
@@ -78,18 +90,20 @@ Train:
       - DecodeImage:
           img_mode: BGR
           channel_first: false
-     # - RecConAug:
-     #     prob: 0.7
-     #     ext_data_num: 3
-     #     image_shape: [48, 1280, 3]
-     #     max_text_length: *max_text_length
+     - RecConAug:
+          prob: 0.7
+          ext_data_num: 3
+          image_shape: [64, 2048, 3]
+          max_text_length: *max_text_length
       - RecAug:
-      - CTCLabelEncode:
+      - MultiLabelEncode: # Changed from CTCLabelEncode
+          max_text_length: *max_text_length
       - KeepKeys:
           keep_keys:
             - image
             - label
             - length
+            - label_sar
   sampler:
     name: MultiScaleSampler
     scales: [[2048, 48], [2048, 64], [2048, 80]]
@@ -114,7 +128,8 @@ Eval:
       - DecodeImage:
           img_mode: BGR
           channel_first: false
-      - CTCLabelEncode:
+      - MultiLabelEncode: # Changed from CTCLabelEncode
+          max_text_length: *max_text_length
       - RecResizeImg:
           eval_mode: True
           image_shape: [3, 64, 2048]
@@ -123,6 +138,7 @@ Eval:
             - image
             - label
             - length
+            - label_sar
   loader:
     shuffle: false
     drop_last: false
