@@ -53,7 +53,8 @@ Architecture:
     name: CTCHead
     fc_decay: 0.00001
     
-Loss: CTCLoss
+Loss:
+  name: CTCLoss
     
 PostProcess:
   name: CTCLabelDecode
