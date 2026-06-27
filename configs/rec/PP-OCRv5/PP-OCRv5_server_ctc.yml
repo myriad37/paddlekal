@@ -42,7 +42,7 @@ Optimizer:
 
 Architecture:
   model_type: rec
-  algorithm: SVTR_HGNet
+  algorithm: SVTR_HGNet_B4
   Transform:
   Backbone:
     name: PPHGNetV2
