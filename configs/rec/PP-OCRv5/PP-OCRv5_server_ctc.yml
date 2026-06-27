@@ -42,11 +42,10 @@ Optimizer:
 
 Architecture:
   model_type: rec
-  algorithm: SVTR_HGNet_B4
+  algorithm: SVTR_HGNet
   Transform:
   Backbone:
-    name: PPHGNetV2
-    scale: 1.0
+    name: PPHGNetV2_B4
   Neck:
     name: SequenceEncoder
     encoder_type: reshape
