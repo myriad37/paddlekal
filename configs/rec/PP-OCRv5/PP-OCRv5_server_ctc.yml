@@ -1,5 +1,5 @@
 Global:
-  model_name: PP-OCRv5_server_rec_ctc_sentence_optimized
+  model_name: PP-OCRv5_server_rec_ctc
   debug: false
   use_gpu: true
   use_amp: true
@@ -24,8 +24,7 @@ Global:
   use_space_char: true
   distributed: false
   save_res_path: /kaggle/working/output/rec/predicts_server_ctc_sentence.txt
-  d2s_train_image_shape: [3, 64, 2048]
-
+  d2s_train_image_shape: [3, 32, 2048]
 
 Optimizer:
   name: Adam
@@ -38,7 +37,6 @@ Optimizer:
   regularizer:
     name: L2
     factor: 5.0e-05
-
 
 Architecture:
   model_type: rec
@@ -65,8 +63,7 @@ Metric:
 
 Train:
   dataset:
-    name: MultiScaleDataSet
-    ds_width: false
+    name: SimpleDataSet
     data_dir: /kaggle/input/datasets/teddylegessemunea/cac-da-amh-ocr/train
     ext_op_transform_idx: 1
     delimiter: "\t"
@@ -79,25 +76,20 @@ Train:
       - RecConAug:
           prob: 0.7
           ext_data_num: 3
-          image_shape: [64, 2048, 3]
+          image_shape: [32, 2048, 3]
           max_text_length: *max_text_length
       - RecAug:
       - CTCLabelEncode: 
+      - RecResizeImg:
+          image_shape: [3, 32, 2048]
       - KeepKeys:
           keep_keys:
             - image
-            - label     # Changed from label_sar
+            - label     
             - length
-  sampler:
-    name: MultiScaleSampler
-    scales: [[2048, 48], [2048, 64], [2048, 80]]
-    first_bs: &bs 16
-    fix_bs: false
-    divided_factor: [8, 16]
-    is_training: True
   loader:
     shuffle: true
-    batch_size_per_card: *bs
+    batch_size_per_card: 16
     drop_last: true
     num_workers: 4
 
@@ -115,7 +107,7 @@ Eval:
       - CTCLabelEncode: 
       - RecResizeImg:
           eval_mode: True
-          image_shape: [3, 64, 2048]
+          image_shape: [3, 32, 2048]
       - KeepKeys:
           keep_keys:
             - image
