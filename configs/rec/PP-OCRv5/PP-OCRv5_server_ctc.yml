@@ -2,6 +2,9 @@ Global:
   model_name: PP-OCRv5_server_rec_ctc_sentence_optimized
   debug: false
   use_gpu: true
+  use_amp: true
+  amp_level: "O2"
+  accum_grad: 2
   epoch_num: 150
   log_smooth_window: 20
   print_batch_step: 100
