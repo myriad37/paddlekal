@@ -2,6 +2,9 @@ Global:
   model_name: PP-OCRv5_mobile_rec # To use static model for inference.
   debug: false
   use_gpu: true
+  use_amp: True
+  amp_level: "O1"
+  accum_iter: 2
   epoch_num: 75
   log_smooth_window: 20
   print_batch_step: 100
