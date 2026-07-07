@@ -105,7 +105,7 @@ Train:
         - valid_ratio
   sampler:
     name: MultiScaleSampler
-    scales: [[2048, 48], [2048, 64], [2048, 82]]
+    scales: [[1024, 96], [2048, 128], [3072, 128], [4096, 128]]
     first_bs: &bs 64
     fix_bs: false
     divided_factor: [8, 16] # w, h
